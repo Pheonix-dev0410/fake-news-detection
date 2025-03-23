@@ -42,7 +42,6 @@ jobs:
           app-name: 'fake-news'
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
           package: backend
-          slot-name: 'production'
 
       - name: Post Deployment Status
         run: |
