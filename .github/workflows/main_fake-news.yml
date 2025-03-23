@@ -35,6 +35,17 @@ jobs:
           pip install -r requirements.txt
           pip install gunicorn
 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate Resource Existence
+        uses: azure/cli@v1
+        with:
+          inlineScript: |
+            az webapp show --name fake-news --resource-group 01 || (echo "Web App 'fake-news' not found in resource group '01'" && exit 1)
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
@@ -44,6 +55,12 @@ jobs:
           package: backend
           slot-name: 'production'
           resource-group-name: '01'
+          app-settings-json: |
+            {
+              "WEBSITE_RUN_FROM_PACKAGE": "1",
+              "SCM_DO_BUILD_DURING_DEPLOYMENT": "true",
+              "PYTHON_VERSION": "3.11"
+            }
 
       - name: Post Deployment Status
         run: |
