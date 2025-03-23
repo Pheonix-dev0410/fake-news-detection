@@ -1,7 +1,7 @@
 name: Build and deploy Python app to Azure Web App
 
 env:
-  AZURE_WEBAPP_NAME: fake-news-api
+  AZURE_WEBAPP_NAME: fake-news
   PYTHON_VERSION: '3.11'
 
 on:
@@ -50,6 +50,7 @@ jobs:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
           package: backend
+          respect-pom-xml: false
 
       - name: 'Post Deployment Status'
         if: always()

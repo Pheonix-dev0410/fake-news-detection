@@ -8,10 +8,8 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import 'tippy.js/themes/light.css';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://fake-news-api.azurewebsites.net';
-
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: 'http://localhost:8080',
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 });
