@@ -34,10 +34,31 @@ jobs:
           pip install -r requirements.txt
           pip install gunicorn
 
+      - name: Verify Azure Web App exists
+        run: |
+          echo "Verifying Web App existence..."
+          echo "Web App Name: ${{ env.AZURE_WEBAPP_NAME }}"
+          echo "Current directory contents:"
+          ls -la
+          echo "Backend directory contents:"
+          ls -la backend/
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
-          package: backend 
+          package: backend
+          respect-pom-xml: false
+
+      - name: 'Post Deployment Status'
+        if: always()
+        run: |
+          if [ "${{ steps.deploy-to-webapp.outcome }}" == "success" ]; then
+            echo "Deployment successful!"
+            echo "You can visit your app at https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          else
+            echo "Deployment failed. Please check the logs above for more details."
+            echo "Make sure the Web App '${{ env.AZURE_WEBAPP_NAME }}' exists in your Azure subscription."
+          fi 
