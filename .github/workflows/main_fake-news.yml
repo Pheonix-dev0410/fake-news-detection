@@ -3,10 +3,6 @@
 
 name: Build and deploy Python app to Azure Web App - fake-news
 
-env:
-  AZURE_WEBAPP_NAME: fake-news
-  PYTHON_VERSION: '3.11'
-
 on:
   push:
     branches:
@@ -14,21 +10,16 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python version
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Create and start virtual environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -37,51 +28,20 @@ jobs:
           pip install -r requirements.txt
           pip install gunicorn
 
-      - name: Prepare deployment package
-        run: |
-          cd backend
-          zip -r ../release.zip ./*
-
-      - name: Upload artifact for deployment jobs
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: release.zip
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: 'production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      - name: Unzip artifact for deployment
-        run: |
-          unzip release.zip -d .
-          rm release.zip
-
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          app-name: 'fake-news'
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
-          package: .
-          slot-name: 'production'
+          package: backend
 
       - name: 'Post Deployment Status'
         if: always()
         run: |
           if [ "${{ steps.deploy-to-webapp.outcome }}" == "success" ]; then
             echo "Deployment successful!"
-            echo "You can visit your app at https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+            echo "You can visit your app at https://fake-news.azurewebsites.net"
           else
             echo "Deployment failed. Please check the logs above for more details."
-            echo "Make sure the Web App '${{ env.AZURE_WEBAPP_NAME }}' exists in your Azure subscription."
-          fi 
+            echo "Make sure the Web App 'fake-news' exists in your Azure subscription." 
