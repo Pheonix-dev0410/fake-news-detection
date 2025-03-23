@@ -1,8 +1,8 @@
 name: Build and deploy Python app to Azure Web App
 
 env:
-  AZURE_WEBAPP_NAME: fake-news    # set this to your application's name
-  PYTHON_VERSION: '3.11'              # set this to the Python version to use
+  AZURE_WEBAPP_NAME: fake-news
+  PYTHON_VERSION: '3.11'
 
 on:
   push:
@@ -33,20 +33,20 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install gunicorn
+
+      - name: Create deployment package
+        run: |
+          cd backend
+          zip -r ../deploy.zip ./*
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v3
         with:
           name: python-app
-          path: |
-            backend
-            !backend/venv/
-            !backend/__pycache__/
-            !backend/*.pyc
-            !backend/*.pyo
-            !backend/*.pyd
+          path: deploy.zip
 
   deploy:
     permissions:
@@ -62,7 +62,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: python-app
-          path: .
+
+      - name: Unzip artifact for deployment
+        run: unzip deploy.zip
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
