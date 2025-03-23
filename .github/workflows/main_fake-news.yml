@@ -9,6 +9,13 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  AZURE_LANGUAGE_ENDPOINT: 'https://fake-news0410.cognitiveservices.azure.com/'
+  AZURE_LANGUAGE_KEY: ${{ secrets.AZURE_LANGUAGE_KEY }}
+  AZURE_SEARCH_ENDPOINT: 'https://fake-news10.search.windows.net'
+  AZURE_SEARCH_KEY: ${{ secrets.AZURE_SEARCH_KEY }}
+  COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -36,10 +43,9 @@ jobs:
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
           package: backend
 
-      - name: 'Post Deployment Status'
-        if: always()
+      - name: Post Deployment Status
         run: |
-          if [ "${{ steps.deploy-to-webapp.outcome }}" == "success" ]; then
+          if [[ "${{ steps.deploy-to-webapp.outcome }}" == "success" ]]; then
             echo "Deployment successful!"
             echo "You can visit your app at https://fake-news.azurewebsites.net"
           else
