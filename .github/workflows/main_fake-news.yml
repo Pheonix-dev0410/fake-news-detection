@@ -50,4 +50,5 @@ jobs:
             echo "You can visit your app at https://fake-news.azurewebsites.net"
           else
             echo "Deployment failed. Please check the logs above for more details."
-            echo "Make sure the Web App 'fake-news' exists in your Azure subscription." 
+            echo "Make sure the Web App 'fake-news' exists in your Azure subscription."
+          fi 
