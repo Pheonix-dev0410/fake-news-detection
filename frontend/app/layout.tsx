@@ -1,8 +1,9 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Inter, Playfair_Display } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
+const playfair = Playfair_Display({ subsets: ['latin'] })
 
 export const metadata = {
   title: 'Fake News Detection',
@@ -16,7 +17,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <head>
+        <title>The Truth Detector - AI-Powered News Analysis</title>
+        <meta name="description" content="Verify the credibility of news articles using AI-powered analysis" />
+      </head>
+      <body className={playfair.className}>
         {children}
         <Toaster position="top-right" />
       </body>
