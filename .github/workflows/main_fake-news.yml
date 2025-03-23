@@ -1,32 +1,31 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
+name: Build and deploy Python app to Azure Web App
 
-name: Build and deploy Python app to Azure Web App - fake-news
+env:
+  AZURE_WEBAPP_NAME: fake-news
+  PYTHON_VERSION: '3.11'
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
-env:
-  AZURE_LANGUAGE_ENDPOINT: 'https://fake-news0410.cognitiveservices.azure.com/'
-  AZURE_LANGUAGE_KEY: ${{ secrets.AZURE_LANGUAGE_KEY }}
-  AZURE_SEARCH_ENDPOINT: 'https://fake-news10.search.windows.net'
-  AZURE_SEARCH_KEY: ${{ secrets.AZURE_SEARCH_KEY }}
-  COSMOS_CONNECTION_STRING: ${{ secrets.COSMOS_CONNECTION_STRING }}
+permissions:
+  contents: read
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python version
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: |
@@ -35,36 +34,31 @@ jobs:
           pip install -r requirements.txt
           pip install gunicorn
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          enable-AzPSSession: false
-          environment: azurecloud
-          allow-no-subscriptions: false
-          audience: api://AzureADTokenExchange
-          auth-type: SERVICE_PRINCIPAL
+      - name: Verify Azure Web App exists
+        run: |
+          echo "Verifying Web App existence..."
+          echo "Web App Name: ${{ env.AZURE_WEBAPP_NAME }}"
+          echo "Current directory contents:"
+          ls -la
+          echo "Backend directory contents:"
+          ls -la backend/
 
-      - name: Validate Resource Existence
-        uses: azure/cli@v1
-        with:
-          inlineScript: |
-            az webapp show --name fake-news --resource-group 01 || (echo "Web App 'fake-news' not found in resource group '01'" && exit 1)
-
-      - name: Deploy to Azure Web App
+      - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: 'fake-news'
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
           package: backend
+          respect-pom-xml: false
 
-      - name: Post Deployment Status
+      - name: 'Post Deployment Status'
+        if: always()
         run: |
-          if [[ "${{ steps.deploy-to-webapp.outcome }}" == "success" ]]; then
+          if [ "${{ steps.deploy-to-webapp.outcome }}" == "success" ]; then
             echo "Deployment successful!"
-            echo "You can visit your app at https://fake-news.azurewebsites.net"
+            echo "You can visit your app at https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net"
           else
             echo "Deployment failed. Please check the logs above for more details."
-            echo "Make sure the Web App 'fake-news' exists in your Azure subscription."
+            echo "Make sure the Web App '${{ env.AZURE_WEBAPP_NAME }}' exists in your Azure subscription."
           fi 

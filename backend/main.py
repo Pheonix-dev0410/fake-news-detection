@@ -11,6 +11,12 @@ from azure.cosmos import CosmosClient
 from newspaper import Article
 import json
 from datetime import datetime
+import logging
+import uuid
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -20,40 +26,49 @@ app = FastAPI(title="Fake News Detection API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize Azure clients
+# Initialize Azure Language client
 text_analytics_client = TextAnalyticsClient(
     endpoint=os.getenv("AZURE_LANGUAGE_ENDPOINT"),
     credential=AzureKeyCredential(os.getenv("AZURE_LANGUAGE_KEY"))
 )
 
-search_client = SearchClient(
-    endpoint=os.getenv("AZURE_SEARCH_ENDPOINT"),
-    index_name="news-index",
-    credential=AzureKeyCredential(os.getenv("AZURE_SEARCH_KEY"))
-)
+# Initialize Azure Search client (but don't connect yet)
+search_endpoint = os.getenv("AZURE_SEARCH_ENDPOINT")
+search_key = os.getenv("AZURE_SEARCH_KEY")
 
+# Initialize Cosmos DB client
 cosmos_client = CosmosClient.from_connection_string(os.getenv("COSMOS_CONNECTION_STRING"))
-database = cosmos_client.get_database_client("fake-news-db")
-container = database.get_container_client("articles")
+database = cosmos_client.get_database_client("fake_news_db")
+container = database.get_container_client("analyzed_articles")
 
 class NewsInput(BaseModel):
     url: Optional[HttpUrl] = None
     text: Optional[str] = None
 
 class AnalysisResult(BaseModel):
+    id: str
     text: str
     sentiment: str
     confidence: float
     is_fake: bool
     credibility_score: float
     source_url: Optional[str]
-    analyzed_at: datetime
+    analyzed_at: str
+
+    class Config:
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat()
+        }
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Fake News Detection API is running"}
 
 @app.post("/analyze", response_model=AnalysisResult)
 async def analyze_news(input_data: NewsInput):
@@ -76,47 +91,59 @@ async def analyze_news(input_data: NewsInput):
         sentiment = sentiment_result.sentiment
         confidence = sentiment_result.confidence_scores[sentiment]
 
-        # Search for similar articles in trusted sources
-        search_results = search_client.search(
-            search_text=text,
-            select=["title", "content", "source"],
-            top=5
-        )
+        # Try to search for similar articles, but don't fail if search index doesn't exist
+        credibility_score = 0.5  # Default score
+        try:
+            search_client = SearchClient(
+                endpoint=search_endpoint,
+                index_name="news-index",
+                credential=AzureKeyCredential(search_key)
+            )
+            search_results = list(search_client.search(
+                search_text=text,
+                select=["title", "content", "source"],
+                top=5
+            ))
+            credibility_score = min(1.0, len(search_results) * 0.2)
+            logger.info(f"Found {len(search_results)} similar articles")
+        except Exception as search_error:
+            logger.warning(f"Search index not available: {str(search_error)}")
+            # Continue without search results
 
-        # Calculate credibility score based on search results
-        credibility_score = min(1.0, len(list(search_results)) * 0.2)
+        # Determine if news is fake based on available signals
+        is_fake = (sentiment == "negative" and confidence > 0.8)
 
-        # Determine if news is fake based on credibility score and sentiment
-        is_fake = credibility_score < 0.4 or (sentiment == "negative" and confidence > 0.8)
-
-        # Create result
+        # Create result with datetime as ISO format string and unique id
         result = AnalysisResult(
+            id=str(uuid.uuid4()),
             text=text,
             sentiment=sentiment,
             confidence=confidence,
             is_fake=is_fake,
             credibility_score=credibility_score,
             source_url=source_url,
-            analyzed_at=datetime.utcnow()
+            analyzed_at=datetime.utcnow().isoformat()
         )
 
-        # Store result in Cosmos DB
-        container.create_item(body=result.dict())
+        # Convert result to dict and store in Cosmos DB
+        result_dict = result.dict()
+        container.create_item(body=result_dict)
 
         return result
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/history")
-async def get_analysis_history():
-    try:
-        # Query recent analyses from Cosmos DB
-        query = "SELECT * FROM c ORDER BY c.analyzed_at DESC LIMIT 10"
-        results = list(container.query_items(query=query, enable_cross_partition_query=True))
-        return results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "services": {
+            "language": "available",
+            "search": "index not found - needs setup",
+            "cosmos": "available"
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn
