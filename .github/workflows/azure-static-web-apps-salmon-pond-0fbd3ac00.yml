@@ -36,6 +36,7 @@ jobs:
         run: |
           cd frontend
           npm run build
+          ls -la out/
 
       - name: Build And Deploy
         id: builddeploy
@@ -44,10 +45,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_SALMON_POND_0FBD3AC00 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "frontend/out"
+          app_location: "frontend"
+          output_location: "out"
           skip_app_build: true
-          output_location: ""
-          ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -60,4 +60,4 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_SALMON_POND_0FBD3AC00 }}
           action: "close"
-          app_location: "frontend/out"
+          app_location: "frontend"
