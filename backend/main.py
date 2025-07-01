@@ -45,7 +45,8 @@ app.add_middleware(
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "http://localhost:8080",
-        "http://127.0.0.1:8080"
+        "http://127.0.0.1:8080",
+        "https://fake-news-dyf0dveychfvckg7.azurestaticapps.net",  # Add your deployed frontend URL here
     ],
     allow_credentials=True,
     allow_methods=["*"],
