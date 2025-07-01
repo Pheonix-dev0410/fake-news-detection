@@ -43,13 +43,17 @@ jobs:
           echo "Backend directory contents:"
           ls -la backend/
       
+      - name: Prepare deployment package
+        run: |
+          cd backend
+          zip -r ../backend.zip .
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
-          package: backend
+          package: backend.zip
       
       - name: 'Post Deployment Status'
         if: always()
