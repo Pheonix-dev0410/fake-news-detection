@@ -43,11 +43,6 @@ jobs:
           echo "Backend directory contents:"
           ls -la backend/
 
-      - name: 'Login to Azure'
-        uses: azure/login@v1
-        with:
-          publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
-
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
