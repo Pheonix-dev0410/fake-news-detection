@@ -10,4 +10,5 @@ httpx==0.26.0
 beautifulsoup4==4.12.3
 newspaper3k==0.2.8
 lxml[html_clean]==5.1.0
-lxml_html_clean==0.1.0 
+lxml_html_clean==0.1.0
+gunicorn 
