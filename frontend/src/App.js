@@ -4,7 +4,7 @@ import './App.css';
 
 // Create an axios instance with custom config
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 30000, // 30 seconds timeout
   headers: {
     'Content-Type': 'application/json'
