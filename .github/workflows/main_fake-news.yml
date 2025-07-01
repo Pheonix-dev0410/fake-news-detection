@@ -48,7 +48,7 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZUREWEBAPP_PUBLISHPROFILE }}
-          package: ${{ env.PACKAGE_PATH }}
+          package: backend
 
       - name: 'Post Deployment Status'
         if: always()
